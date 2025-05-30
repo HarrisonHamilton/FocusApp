@@ -1,7 +1,18 @@
+
 import React, { useState, useContext } from 'react';
-import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  TextInput,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { VentContext } from '../../../contexts/VentContext';
+import HapticButton from '../../../components/HapticButton';
 
 export default function VentScreen() {
   const [title, setTitle] = useState('');
@@ -20,53 +31,107 @@ export default function VentScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Title</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Give your vent a name..."
-        placeholderTextColor="#888"
-        value={title}
-        onChangeText={setTitle}
-      />
-      <Text style={styles.label}>Message</Text>
-      <TextInput
-        style={styles.textArea}
-        placeholder="Let it all out..."
-        placeholderTextColor="#888"
-        value={message}
-        onChangeText={setMessage}
-        multiline
-      />
-      <Button title="Send to Orb" onPress={handleSend} />
-    </View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.header}>
+          <Text style={styles.orbIcon}>🌀</Text>
+          <Text style={styles.title}>Vent a Thought</Text>
+        </View>
+
+        <View style={styles.card}>
+          <TextInput
+            style={styles.input}
+            placeholder="Give your vent a title..."
+            placeholderTextColor="#888"
+            value={title}
+            onChangeText={setTitle}
+          />
+        </View>
+
+        <View style={styles.cardLarge}>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Write what’s on your mind..."
+            placeholderTextColor="#888"
+            value={message}
+            onChangeText={setMessage}
+            multiline
+          />
+        </View>
+
+        <HapticButton onPress={handleSend} style={styles.button}>
+          <Text style={styles.buttonText}>Send to Orb</Text>
+        </HapticButton>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    paddingTop: 100, // 👈 pushes all content lower on the screen
     backgroundColor: 'black',
+    padding: 24,
+    paddingTop: 80,
   },
-  label: {
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  orbIcon: {
+    fontSize: 48,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 22,
     color: 'white',
-    marginBottom: 4,
+    fontWeight: '600',
+  },
+  card: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  cardLarge: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: 14,
+    height: 160,
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   input: {
-    backgroundColor: '#222',
     color: 'white',
-    marginBottom: 12,
-    padding: 10,
-    borderRadius: 6,
+    fontSize: 16,
   },
   textArea: {
-    backgroundColor: '#222',
     color: 'white',
-    padding: 10,
-    height: 120,
-    borderRadius: 6,
-    marginBottom: 20,
+    fontSize: 16,
+    textAlignVertical: 'top',
+    height: '100%',
+  },
+  button: {
+    backgroundColor: '#1e90ff',
+    paddingVertical: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
   },
 });

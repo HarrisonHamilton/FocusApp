@@ -1,4 +1,6 @@
+// contexts/VentContext.js
 import React, { createContext, useState } from 'react';
+import uuid from 'react-native-uuid';
 
 export const VentContext = createContext();
 
@@ -6,11 +8,12 @@ export default function VentProvider({ children }) {
   const [vents, setVents] = useState([]);
 
   const addVent = (title) => {
-    setVents((prev) => [...prev, title]);
+    const newVent = { id: uuid.v4(), title };
+    setVents((prev) => [...prev, newVent]);
   };
 
-  const removeVent = (title) => {
-    setVents((prev) => prev.filter((v) => v !== title));
+  const removeVent = (id) => {
+    setVents((prev) => prev.filter((v) => v.id !== id));
   };
 
   return (

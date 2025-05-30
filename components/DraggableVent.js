@@ -1,66 +1,105 @@
-import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet, Text } from 'react-native';
+import React from 'react';
+import { Text, StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
-  useAnimatedStyle,
   useAnimatedGestureHandler,
+  useAnimatedStyle,
+  withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import {
+  PanGestureHandler,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
-const ORB_RADIUS = 75;
-const ORB_X = width / 2;
-const ORB_Y = height / 2;
 
-export default function DraggableVent({ title, onDropNearOrb }) {
-  const x = useSharedValue(width / 2 - 50); // spawn in center-ish
-  const y = useSharedValue(height / 4);     // quarter down the screen
+export default function DraggableVent({ id, title, orbCenter, onDropNearOrb }) {
+  const startX = useSharedValue(Math.random() * width);
+  const startY = useSharedValue(Math.random() * height * 0.4 + height * 0.3);
+
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
+  const isDragging = useSharedValue(false);
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx) => {
-      ctx.startX = x.value;
-      ctx.startY = y.value;
+      ctx.offsetX = translateX.value;
+      ctx.offsetY = translateY.value;
+      isDragging.value = true;
     },
     onActive: (event, ctx) => {
-      x.value = ctx.startX + event.translationX;
-      y.value = ctx.startY + event.translationY;
+      translateX.value = ctx.offsetX + event.translationX;
+      translateY.value = ctx.offsetY + event.translationY;
     },
     onEnd: () => {
-      const dx = x.value - ORB_X;
-      const dy = y.value - ORB_Y;
+      isDragging.value = false;
+
+      const x = startX.value + translateX.value;
+      const y = startY.value + translateY.value;
+
+      const dx = x - orbCenter.x;
+      const dy = y - orbCenter.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < ORB_RADIUS + 40) {
-        runOnJS(onDropNearOrb)(title, x.value, y.value);
+
+      if (distance < orbCenter.radius * 1.1) {
+        runOnJS(onDropNearOrb)(id);
+      } else {
+        // Snap back
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
       }
     },
   });
 
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: x.value },
-      { translateY: y.value },
-    ],
-    position: 'absolute',
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    // Magnetic pull effect
+    const x = startX.value + translateX.value;
+    const y = startY.value + translateY.value;
+
+    const dx = orbCenter.x - x;
+    const dy = orbCenter.y - y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const pullStrength = Math.min(1, 200 / distance);
+
+    const curvedX = translateX.value + dx * 0.05 * pullStrength;
+    const curvedY = translateY.value + dy * 0.05 * pullStrength;
+
+    return {
+      position: 'absolute',
+      left: startX.value,
+      top: startY.value,
+      transform: [{ translateX: curvedX }, { translateY: curvedY }],
+      opacity: isDragging.value ? 1 : 0.95,
+      zIndex: isDragging.value ? 999 : 1,
+    };
+  });
 
   return (
-    <PanGestureHandler onGestureEvent={gestureHandler}>
-      <Animated.View style={[styles.bubble, style]}>
-        <Text style={styles.text}>{title}</Text>
-      </Animated.View>
-    </PanGestureHandler>
+    <GestureHandlerRootView>
+      <PanGestureHandler onGestureEvent={gestureHandler}>
+        <Animated.View style={[styles.vent, animatedStyle]}>
+          <Text style={styles.ventText}>{title}</Text>
+        </Animated.View>
+      </PanGestureHandler>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  bubble: {
-    backgroundColor: '#333',
-    padding: 10,
-    borderRadius: 8,
+  vent: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    backgroundColor: '#222',
+    borderRadius: 24,
+    shadowColor: '#00f0ff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
-  text: {
-    color: 'white',
+  ventText: {
+    color: '#eaffff',
     fontSize: 16,
   },
 });

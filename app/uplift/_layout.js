@@ -1,6 +1,15 @@
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 
 export default function UpliftLayout() {
-  // This disables tabs inside reflect folder by just rendering nested content
-  return <Slot />;
+  return (
+    <Stack
+      screenOptions={{
+        gestureEnabled: true,
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: '#000', // keep consistent background
+        },
+      }}
+    />
+  );
 }

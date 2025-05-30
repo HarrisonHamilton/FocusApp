@@ -1,53 +1,202 @@
-// app/reflect/emotions.js
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
-import Slider from '@react-native-community/slider';
 
-export default function EmotionsScreen() {
-  const [value, setValue] = useState(50);
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Dimensions,
+  Pressable,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform
+} from 'react-native';
+import Slider from '@react-native-community/slider';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+
+const { width } = Dimensions.get('window');
+const SLIDER_PADDING = 40;
+const SLIDER_WIDTH = width - SLIDER_PADDING * 2;
+const THUMB_SIZE = 36;
+
+function EmotionSlider({ label, emojiMap, value, setValue }) {
+  const animatedValue = new Animated.Value(value);
+  const [emojiIndex, setEmojiIndex] = useState(-1);
+
+  const handleValueChange = (val) => {
+    setValue(val);
+    animatedValue.setValue(val);
+    const index = getEmojiIndex(val);
+    if (index !== emojiIndex) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setEmojiIndex(index);
+    }
+  };
+
+  const getEmojiIndex = (val) => {
+    if (val < 0.2) return 0;
+    if (val < 0.4) return 1;
+    if (val < 0.6) return 2;
+    if (val < 0.8) return 3;
+    return 4;
+  };
+
+  const getEmoji = (val) => emojiMap[getEmojiIndex(val)];
+
+  const position = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-THUMB_SIZE / 4, SLIDER_WIDTH - THUMB_SIZE + THUMB_SIZE / 4],
+    extrapolate: 'clamp',
+  });
+
+  const animatedScale = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.8],
+    extrapolate: 'clamp',
+  });
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.label}>How are you feeling?</Text>
-        <Slider
-          style={styles.slider}
-          minimumValue={0}
-          maximumValue={100}
-          value={value}
-          onValueChange={setValue}
-          minimumTrackTintColor="deepskyblue"
-          maximumTrackTintColor="#888"
-          thumbTintColor="white"
-        />
-        <Text style={styles.valueText}>Intensity: {Math.round(value)}</Text>
+    <View style={styles.sliderBlock}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.sliderWrapper}>
+        <View style={{ width: SLIDER_WIDTH }}>
+          <Slider
+            style={styles.slider}
+            value={value}
+            onValueChange={handleValueChange}
+            minimumValue={0}
+            maximumValue={1}
+            step={0.01}
+            minimumTrackTintColor="#999"
+            maximumTrackTintColor="#444"
+            thumbTintColor="transparent"
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.emojiThumb,
+              {
+                transform: [{ translateX: position }, { scale: animatedScale }],
+              },
+            ]}
+          >
+            <Text style={styles.emojiText}>{getEmoji(value)}</Text>
+          </Animated.View>
+        </View>
       </View>
-    </SafeAreaView>
+    </View>
+  );
+}
+
+export default function EmotionsScreen() {
+  const [happiness, setHappiness] = useState(0.5);
+  const [anxiety, setAnxiety] = useState(0.5);
+  const [energy, setEnergy] = useState(0.5);
+  const router = useRouter();
+
+  return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <Text style={styles.header}>Log Your Emotions</Text>
+
+        <EmotionSlider
+          label="Happiness"
+          emojiMap={['😭', '😢', '😐', '🙂', '😁']}
+          value={happiness}
+          setValue={setHappiness}
+        />
+        <EmotionSlider
+          label="Anxiety"
+          emojiMap={['😌', '😟', '😣', '😫', '😱']}
+          value={anxiety}
+          setValue={setAnxiety}
+        />
+        <EmotionSlider
+          label="Energy"
+          emojiMap={['💤', '😴', '😌', '😃', '⚡️']}
+          value={energy}
+          setValue={setEnergy}
+        />
+
+        <Pressable
+          style={styles.button}
+          onPress={() =>
+            router.push({
+              pathname: '/reflect/emotionHelp',
+              params: {
+                happiness: happiness.toFixed(2),
+                anxiety: anxiety.toFixed(2),
+                energy: energy.toFixed(2),
+              },
+            })
+          }
+        >
+          <Text style={styles.buttonText}>Submit</Text>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: 'black',
+    padding: 20,
+    paddingBottom: 40,
+    justifyContent: 'space-around',
+  },
+  header: {
+    color: 'white',
+    fontSize: 24,
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  sliderBlock: {
+    marginVertical: 20,
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
   label: {
     color: 'white',
-    fontSize: 20,
-    marginBottom: 30,
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  sliderWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   slider: {
-    width: '100%',
+    width: SLIDER_WIDTH,
+    height: 40,
+    zIndex: 0,
   },
-  valueText: {
-    color: 'white',
-    fontSize: 16,
+  emojiThumb: {
+    position: 'absolute',
+    top: 0,
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  emojiText: {
+    fontSize: 28,
+  },
+  button: {
+    backgroundColor: 'skyblue',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
     marginTop: 20,
+    marginHorizontal: 40,
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
